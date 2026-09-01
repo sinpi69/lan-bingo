@@ -20,7 +20,9 @@ export default function TurnCard({
         <p>
           {myTurn
             ? "Choose the next number."
-            : "Wait for the current player."}
+            : currentPlayer?.active
+              ? "Wait for the current player."
+              : "The next active player will play."}
         </p>
       </div>
 
@@ -28,14 +30,26 @@ export default function TurnCard({
         {players.map((player, index) => (
           <div
             key={player.id}
-            className={index === turnIndex ? "player active" : "player"}
+            className={[
+              "player",
+              index === turnIndex && player.active ? "active" : "",
+              !player.active ? "eliminated" : "",
+            ].join(" ")}
           >
-            <span>{index + 1}</span>
+            <span>{player.placement || index + 1}</span>
 
             <b>
               {player.name}
               {player.id === playerId ? " (You)" : ""}
             </b>
+
+            {!player.active && (
+              <em>
+                {player.placement
+                  ? `#${player.placement}`
+                  : "OUT"}
+              </em>
+            )}
           </div>
         ))}
       </div>

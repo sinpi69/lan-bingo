@@ -1,4 +1,9 @@
-export default function WinnerOverlay({ name, onContinue }) {
+export default function WinnerOverlay({
+  name,
+  placement,
+  score,
+  onContinue,
+}) {
   return (
     <div className="winnerOverlay">
       <div className="winnerCard">
@@ -6,10 +11,13 @@ export default function WinnerOverlay({ name, onContinue }) {
 
         <h2>{name}</h2>
 
-        <p>You completed five lines.</p>
+        <p>
+          You finished <b>#{placement}</b> with{" "}
+          <b>{score} points</b>.
+        </p>
 
         <button className="primary" onClick={onContinue}>
-          Continue
+          View Game
         </button>
       </div>
     </div>

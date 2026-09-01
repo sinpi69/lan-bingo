@@ -454,7 +454,7 @@ input:focus {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 6px;
-  max-width: 55%;
+  max-width: 60%;
 }
 
 .player {
@@ -482,6 +482,77 @@ input:focus {
 .player.active {
   border-color: #111318;
   color: #111318;
+}
+
+.player.eliminated {
+  background: #f1f2f3;
+  color: #999ea5;
+  text-decoration: line-through;
+}
+
+.player em {
+  font-size: 8px;
+  font-style: normal;
+  text-decoration: none;
+}
+
+.scoreboard {
+  padding: 20px;
+}
+
+.scoreRows {
+  display: grid;
+  gap: 6px;
+}
+
+.scoreRow,
+.finalRow {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid #e1e4e8;
+  border-radius: 9px;
+  background: #fafafa;
+}
+
+.youScore {
+  border-color: #111318;
+  background: #f2f3f4;
+}
+
+.rank,
+.finalRank {
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.scorePlayer,
+.finalPlayer {
+  min-width: 0;
+}
+
+.scorePlayer b,
+.finalPlayer b {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.scorePlayer span,
+.finalPlayer span {
+  display: block;
+  margin-top: 2px;
+  color: #858b94;
+  font-size: 9px;
+}
+
+.scoreRow > strong,
+.finalRow > strong {
+  font-size: 13px;
 }
 
 .calledPanel {
@@ -594,6 +665,10 @@ input:focus {
   gap: 5px;
 }
 
+.eliminatedBoard {
+  opacity: 0.7;
+}
+
 .cell {
   position: relative;
   aspect-ratio: 1;
@@ -666,6 +741,37 @@ input:focus {
   font-size: 11px;
 }
 
+.eliminatedBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 13px 15px;
+  border: 1px solid #dfe2e6;
+  border-radius: 12px;
+  background: #e9eaec;
+}
+
+.eliminatedBanner strong,
+.eliminatedBanner span {
+  display: block;
+}
+
+.eliminatedBanner strong {
+  font-size: 12px;
+}
+
+.eliminatedBanner span {
+  margin-top: 3px;
+  color: #6f747b;
+  font-size: 10px;
+}
+
+.eliminatedBanner > b {
+  white-space: nowrap;
+  font-size: 12px;
+}
+
 .winnerOverlay {
   position: fixed;
   inset: 0;
@@ -700,6 +806,69 @@ input:focus {
 .winnerCard p {
   color: #777e87;
   font-size: 12px;
+}
+
+.gameOverLayout {
+  width: min(620px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 45px 0;
+}
+
+.gameOverCard {
+  padding: 28px;
+  text-align: center;
+}
+
+.gameOverIcon {
+  width: 55px;
+  height: 55px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: #111318;
+  color: #fff;
+  font-size: 24px;
+  font-weight: 950;
+}
+
+.gameOverCard h1 {
+  margin: 0;
+  font-size: 27px;
+}
+
+.gameOverSubtitle {
+  margin: 5px 0 25px;
+  color: #777e87;
+  font-size: 12px;
+}
+
+.finalStandings {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.finalRow {
+  min-height: 55px;
+}
+
+.finalRank {
+  text-align: center;
+}
+
+.finalPlayer b {
+  font-size: 12px;
+}
+
+.finalPlayer span {
+  font-size: 9px;
+}
+
+.finalRow > strong {
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .toast {
@@ -755,7 +924,8 @@ input:focus {
 
   .calledPanel,
   .bingoCard,
-  .history {
+  .history,
+  .scoreboard {
     padding: 14px;
   }
 
@@ -767,15 +937,21 @@ input:focus {
     font-size: 34px;
     letter-spacing: 5px;
   }
+
+  .eliminatedBanner {
+    align-items: flex-start;
+  }
 }
 
 @media (max-width: 430px) {
-  .home {
+  .home,
+  .gameOverLayout {
     width: min(100% - 20px, 620px);
   }
 
   .setupCard,
-  .waitingCard {
+  .waitingCard,
+  .gameOverCard {
     padding: 17px;
   }
 
@@ -789,5 +965,12 @@ input:focus {
 
   .number {
     border-radius: 4px;
+  }
+
+  .scoreRow,
+  .finalRow {
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    gap: 7px;
+    padding: 8px;
   }
 }

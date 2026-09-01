@@ -6,6 +6,7 @@ export default function NumberSelector({
   myTurn,
   currentPlayer,
   onSelect,
+  eliminated,
 }) {
   const boardSize = count === 25 ? 5 : 10;
 
@@ -16,9 +17,11 @@ export default function NumberSelector({
           <h2>Select Next Number</h2>
 
           <p>
-            {myTurn
-              ? "Tap any available number."
-              : `Waiting for ${currentPlayer?.name || "player"}.`}
+            {eliminated
+              ? "You finished your placement. You are out."
+              : myTurn
+                ? "Tap any available number."
+                : `Waiting for ${currentPlayer?.name || "player"}.`}
           </p>
         </div>
 
@@ -28,7 +31,7 @@ export default function NumberSelector({
       </div>
 
       <div
-        className="numberGrid"
+        className={`numberGrid ${eliminated ? "disabledGrid" : ""}`}
         style={{
           gridTemplateColumns: `repeat(${boardSize}, minmax(0, 1fr))`,
         }}
@@ -39,7 +42,7 @@ export default function NumberSelector({
           return (
             <button
               key={number}
-              disabled={used || !myTurn}
+              disabled={used || !myTurn || eliminated}
               className={`number ${used ? "used" : ""}`}
               onClick={() => onSelect(number)}
             >

@@ -31,7 +31,6 @@ export default function WaitingRoom({
       <main className="home">
         <section className="card waitingCard">
           <div className="roomLabel">ROOM CODE</div>
-
           <div className="roomCode">{room}</div>
 
           <p className="roomHelp">
@@ -61,7 +60,6 @@ export default function WaitingRoom({
 
                 <div>
                   <b>{player.name}</b>
-
                   {player.id === playerId && (
                     <div className="youLabel">You</div>
                   )}

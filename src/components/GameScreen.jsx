@@ -2,6 +2,8 @@ import TurnCard from "./TurnCard";
 import NumberSelector from "./NumberSelector";
 import BingoCard from "./BingoCard";
 import CalledNumbers from "./CalledNumbers";
+import Scoreboard from "./Scoreboard";
+import WinnerOverlay from "./WinnerOverlay";
 
 export default function GameScreen({
   room,
@@ -14,12 +16,14 @@ export default function GameScreen({
   completedLines,
   completedCells,
   myTurn,
+  eliminated,
   onSelectNumber,
   onLeave,
   winner,
   onCloseWinner,
 }) {
   const currentPlayer = game.players[game.turnIndex];
+  const me = game.players.find((player) => player.id === playerId);
 
   return (
     <div className="app">
@@ -43,11 +47,29 @@ export default function GameScreen({
       </header>
 
       <main className="gameLayout">
+        {eliminated && (
+          <div className="eliminatedBanner">
+            <div>
+              <strong>You are out of the game.</strong>
+              <span>
+                You finished #{me?.placement} and earned {me?.score} points.
+              </span>
+            </div>
+
+            <b>Score: {me?.score}</b>
+          </div>
+        )}
+
         <TurnCard
           players={game.players}
           turnIndex={game.turnIndex}
           playerId={playerId}
           myTurn={myTurn}
+        />
+
+        <Scoreboard
+          players={game.players}
+          playerId={playerId}
         />
 
         <NumberSelector
@@ -56,6 +78,7 @@ export default function GameScreen({
           myTurn={myTurn}
           currentPlayer={currentPlayer}
           onSelect={onSelectNumber}
+          eliminated={eliminated}
         />
 
         <BingoCard
@@ -63,14 +86,17 @@ export default function GameScreen({
           calledSet={calledSet}
           completedLines={completedLines}
           completedCells={completedCells}
+          eliminated={eliminated}
         />
 
         <CalledNumbers called={game.called} />
       </main>
 
-      {winner && (
+      {winner && me && (
         <WinnerOverlay
           name={name}
+          placement={me.placement}
+          score={me.score}
           onContinue={onCloseWinner}
         />
       )}

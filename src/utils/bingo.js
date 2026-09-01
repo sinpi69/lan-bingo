@@ -73,13 +73,69 @@ export function createRoomCode() {
     .toUpperCase();
 }
 
+/*
+  Players:
+  - active: still participating and can take turns.
+  - eliminated: completed 5 lines and finished their placement.
+
+  placements use standard competition ranking:
+  1, 1, 3 for a two-way tie.
+*/
 export function makeGame(count, player) {
   return {
     version: 1,
     phase: "waiting",
     count,
     called: [],
-    players: [player],
+    players: [
+      {
+        ...player,
+        active: true,
+        eliminated: false,
+        placement: null,
+        score: 0,
+      },
+    ],
     turnIndex: 0,
+    nextPlacement: 1,
   };
+}
+
+export function calculateScore(totalPlayers, placement) {
+  return Math.max(0, (totalPlayers - placement) * 10);
+}
+
+export function getActivePlayers(players) {
+  return players.filter((player) => player.active);
+}
+
+export function getPlayerById(players, playerId) {
+  return players.find((player) => player.id === playerId);
+}
+
+export function getNextActiveTurnIndex(players, currentIndex) {
+  if (!players.length) return -1;
+
+  for (let offset = 1; offset <= players.length; offset++) {
+    const index = (currentIndex + offset) % players.length;
+
+    if (players[index]?.active) {
+      return index;
+    }
+  }
+
+  return -1;
+}
+
+export function sortLeaderboard(players) {
+  return [...players].sort((a, b) => {
+    if (a.placement !== null && b.placement !== null) {
+      return a.placement - b.placement;
+    }
+
+    if (a.placement !== null) return -1;
+    if (b.placement !== null) return 1;
+
+    return b.score - a.score;
+  });
 }

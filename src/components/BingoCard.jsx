@@ -5,6 +5,7 @@ export default function BingoCard({
   calledSet,
   completedLines,
   completedCells,
+  eliminated,
 }) {
   const boardSize = Math.sqrt(board.length);
 
@@ -29,8 +30,11 @@ export default function BingoCard({
         <div>
           <h2>Your Bingo Card</h2>
           <p>
-            {completedLines.length} completed line
-            {completedLines.length === 1 ? "" : "s"}
+            {eliminated
+              ? "Finished — no more turns"
+              : `${completedLines.length} completed line${
+                  completedLines.length === 1 ? "" : "s"
+                }`}
           </p>
         </div>
 
@@ -44,7 +48,7 @@ export default function BingoCard({
       </div>
 
       <div
-        className="playerBoard"
+        className={`playerBoard ${eliminated ? "eliminatedBoard" : ""}`}
         style={{
           gridTemplateColumns: `repeat(${boardSize}, minmax(0, 1fr))`,
         }}
@@ -72,7 +76,7 @@ export default function BingoCard({
       {completedLines.length > 0 && (
         <div className="lineMessage">
           {completedLines.length >= 5
-            ? "🎉 BINGO! Five lines completed."
+            ? "🎉 BINGO! You have been placed in the standings."
             : `✓ Line ${completedLines.length} completed`}
         </div>
       )}
