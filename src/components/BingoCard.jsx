@@ -10,7 +10,7 @@ export default function BingoCard({
   const boardSize = Math.sqrt(board.length);
 
   return (
-    <section className="card bingoCard">
+    <div className="bingoBody">
       <div className="bingoHeader">
         {LETTERS.map((letter, index) => (
           <span
@@ -76,10 +76,10 @@ export default function BingoCard({
       {completedLines.length > 0 && (
         <div className="lineMessage">
           {completedLines.length >= 5
-            ? "🎉 BINGO! You have been placed in the standings."
+            ? "🎉 BINGO! Your placement has been recorded."
             : `✓ Line ${completedLines.length} completed`}
         </div>
       )}
-    </section>
+    </div>
   );
 }

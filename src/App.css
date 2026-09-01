@@ -974,3 +974,222 @@ input:focus {
     padding: 8px;
   }
 }
+
+/* ===== Clean single-card game UI ===== */
+.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.topbarInfo {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-width: 0;
+}
+
+.topbarTitle {
+  min-width: 0;
+}
+
+.turnHighlight,
+.turnWaiting {
+  padding: 7px 11px;
+  border-radius: 7px;
+  font-size: 10px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.turnHighlight {
+  background: #111318;
+  color: #fff;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.14);
+}
+
+.turnHighlight.finished {
+  background: #e5e6e8;
+  color: #656a71;
+  box-shadow: none;
+}
+
+.turnWaiting {
+  background: #f0f1f2;
+  color: #6f747b;
+}
+
+.topScore {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding-right: 4px;
+}
+
+.topScore span {
+  color: #858b94;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.topScore strong {
+  font-size: 14px;
+}
+
+.playerStrip {
+  padding: 15px;
+}
+
+.playersTitle {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.playersTitle strong {
+  font-size: 12px;
+}
+
+.playersTitle span {
+  color: #858b94;
+  font-size: 9px;
+}
+
+.playerScoreList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 7px;
+}
+
+.playerScoreItem {
+  display: grid;
+  grid-template-columns: 29px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid #e1e4e8;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.playerScoreItem.currentUser {
+  border-color: #111318;
+}
+
+.playerScoreItem.currentTurn {
+  box-shadow: inset 3px 0 0 #111318;
+}
+
+.playerScoreItem.playerFinished {
+  opacity: 0.62;
+}
+
+.playerDot {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #eef0f2;
+  font-size: 9px;
+  font-weight: 950;
+}
+
+.currentTurn .playerDot {
+  background: #111318;
+  color: #fff;
+}
+
+.playerScoreName {
+  min-width: 0;
+}
+
+.playerScoreName b,
+.playerScoreName span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playerScoreName b {
+  font-size: 10px;
+}
+
+.playerScoreName span {
+  margin-top: 2px;
+  color: #858b94;
+  font-size: 8px;
+}
+
+.playerScoreValue {
+  min-width: 31px;
+  text-align: right;
+  font-size: 12px;
+}
+
+.mainGameCard {
+  overflow: hidden;
+}
+
+.mainGameCard .bingoBody,
+.mainGameCard .numberSelectorBody {
+  padding: 22px;
+}
+
+.gameCardDivider {
+  height: 1px;
+  background: #e5e7ea;
+}
+
+.numberSelectorBody .sectionTitle {
+  margin-bottom: 15px;
+}
+
+@media (max-width: 700px) {
+  .topbar {
+    height: auto;
+    min-height: 64px;
+    padding: 9px 12px;
+  }
+
+  .topbarInfo {
+    gap: 9px;
+  }
+
+  .turnHighlight,
+  .turnWaiting {
+    padding: 6px 8px;
+    font-size: 8px;
+  }
+
+  .topScore {
+    display: none;
+  }
+
+  .topActions {
+    gap: 7px;
+  }
+
+  .playerScoreList {
+    grid-template-columns: 1fr;
+  }
+
+  .mainGameCard .bingoBody,
+  .mainGameCard .numberSelectorBody {
+    padding: 14px;
+  }
+}
+
+@media (max-width: 430px) {
+  .turnHighlight,
+  .turnWaiting {
+    display: none;
+  }
+
+  .playerScoreItem {
+    padding: 7px;
+  }
+}

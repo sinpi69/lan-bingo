@@ -11,7 +11,7 @@ export default function NumberSelector({
   const boardSize = count === 25 ? 5 : 10;
 
   return (
-    <section className="calledPanel">
+    <div className="numberSelectorBody">
       <div className="sectionTitle">
         <div>
           <h2>Select Next Number</h2>
@@ -51,6 +51,6 @@ export default function NumberSelector({
           );
         })}
       </div>
-    </section>
+    </div>
   );
 }
