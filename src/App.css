@@ -1242,3 +1242,102 @@ input:focus {
     transform: none;
   }
 }
+
+/* ===== Improved online waiting room ===== */
+.roomCodeRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.roomCodeRow .roomCode {
+  margin-bottom: 0;
+}
+
+.roomAction,
+.shareRoomButton {
+  border: 1px solid #d8dce1;
+  border-radius: 8px;
+  background: #fff;
+  color: #20242a;
+  padding: 9px 12px;
+  font-size: 10px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.roomAction:hover,
+.shareRoomButton:hover {
+  background: #f5f6f7;
+}
+
+.shareRoomButton {
+  margin-top: 2px;
+}
+
+.playersHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.playerCountBadge {
+  min-width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 0 8px;
+  border-radius: 14px;
+  background: #111318;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.waitingPlayerInfo {
+  min-width: 0;
+  flex: 1;
+}
+
+.playerConnection {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.playerConnection span,
+.statusDot {
+  font-size: 8px;
+}
+
+.playerConnection.online {
+  color: #25733d;
+}
+
+.playerConnection.offline {
+  color: #a06b00;
+}
+
+.status.reconnecting {
+  color: #a06b00;
+}
+
+.waitingPlayer:has(.playerConnection.offline) {
+  opacity: 0.72;
+}
+
+@media (max-width: 560px) {
+  .roomCodeRow {
+    flex-wrap: wrap;
+  }
+
+  .waitingPlayer {
+    flex-wrap: wrap;
+  }
+
+  .playerConnection {
+    width: 100%;
+    margin-left: 40px;
+  }
+}
