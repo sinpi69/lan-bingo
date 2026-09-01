@@ -1,0 +1,11 @@
+{
+  "name": "lan-bingo-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  }
+}
