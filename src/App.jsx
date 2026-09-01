@@ -28,7 +28,6 @@ function shuffle(array) {
 
   for (let i = result.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-
     [result[i], result[j]] = [result[j], result[i]];
   }
 
@@ -102,12 +101,20 @@ function getCompletedLines(board, called) {
   return lines;
 }
 
-function makeInitialGame(count, player) {
+function makeGame(count, player) {
   return {
     version: 1,
+
+    // waiting = waiting room
+    // playing = actual bingo game
+    phase: "waiting",
+
     count,
+
     called: [],
+
     players: [player],
+
     turnIndex: 0,
   };
 }
@@ -118,6 +125,7 @@ export default function App() {
   const [screen, setScreen] = useState("home");
 
   const [name, setName] = useState("");
+
   const [room, setRoom] = useState("");
 
   const [count, setCount] = useState(25);
@@ -127,7 +135,7 @@ export default function App() {
   const [board, setBoard] = useState([]);
 
   const [game, setGame] = useState(
-    makeInitialGame(25, {
+    makeGame(25, {
       id: playerId.current,
       name: "",
     })
@@ -151,8 +159,6 @@ export default function App() {
   const roomRef = useRef(room);
 
   const isCoordinatorRef = useRef(false);
-
-  const connectingRef = useRef(false);
 
   gameRef.current = game;
   nameRef.current = name;
@@ -186,10 +192,18 @@ export default function App() {
     game.players[game.turnIndex];
 
   const myTurn =
+    game.phase === "playing" &&
     myIndex !== -1 &&
     myIndex === game.turnIndex;
 
-  const boardSize = count === 25 ? 5 : 10;
+  const boardSize =
+    count === 25 ? 5 : 10;
+
+  /*
+  ------------------------------------------------------------
+  NOTICE
+  ------------------------------------------------------------
+  */
 
   useEffect(() => {
     if (!notice) return;
@@ -201,19 +215,39 @@ export default function App() {
     return () => clearTimeout(timeout);
   }, [notice]);
 
+  /*
+  ------------------------------------------------------------
+  BINGO DETECTION
+  ------------------------------------------------------------
+  */
+
   useEffect(() => {
-    if (completedLines.length >= 5) {
+    if (
+      game.phase === "playing" &&
+      completedLines.length >= 5
+    ) {
       setWinner(true);
     }
-  }, [completedLines.length]);
+  }, [
+    completedLines.length,
+    game.phase,
+  ]);
+
+  /*
+  ------------------------------------------------------------
+  CLEANUP
+  ------------------------------------------------------------
+  */
 
   useEffect(() => {
     return () => {
-      connectionsRef.current.forEach(connection => {
-        try {
-          connection.close();
-        } catch {}
-      });
+      connectionsRef.current.forEach(
+        connection => {
+          try {
+            connection.close();
+          } catch {}
+        }
+      );
 
       try {
         peerRef.current?.destroy();
@@ -230,31 +264,48 @@ export default function App() {
     setGame(nextGame);
   }
 
+  /*
+  ------------------------------------------------------------
+  SEND TO ALL CONNECTED PLAYERS
+  ------------------------------------------------------------
+  */
+
   function sendToEveryone(message) {
     const data = JSON.stringify(message);
 
-    connectionsRef.current.forEach(connection => {
-      if (connection.open) {
-        try {
-          connection.send(data);
-        } catch {}
+    connectionsRef.current.forEach(
+      connection => {
+        if (connection.open) {
+          try {
+            connection.send(data);
+          } catch {}
+        }
       }
-    });
+    );
   }
+
+  /*
+  ------------------------------------------------------------
+  BROADCAST GAME STATE
+  ------------------------------------------------------------
+  */
 
   function broadcastGame(nextGame) {
     const currentVersion =
-      Number(gameRef.current.version || 0);
-
-    const nextVersion =
-      Math.max(
-        Number(nextGame.version || 0),
-        currentVersion + 1
+      Number(
+        gameRef.current.version || 0
       );
 
     const finalGame = {
       ...nextGame,
-      version: nextVersion,
+
+      version:
+        Math.max(
+          Number(
+            nextGame.version || 0
+          ),
+          currentVersion + 1
+        ),
     };
 
     updateGame(finalGame);
@@ -265,12 +316,20 @@ export default function App() {
     });
   }
 
+  /*
+  ------------------------------------------------------------
+  ADD PLAYER
+  ------------------------------------------------------------
+  */
+
   function addPlayer(player) {
-    const current = gameRef.current;
+    const current =
+      gameRef.current;
 
     if (
       current.players.some(
-        existing => existing.id === player.id
+        existing =>
+          existing.id === player.id
       )
     ) {
       return current;
@@ -278,6 +337,7 @@ export default function App() {
 
     return {
       ...current,
+
       players: [
         ...current.players,
         player,
@@ -285,23 +345,38 @@ export default function App() {
     };
   }
 
-  function handleMessage(message, connection) {
+  /*
+  ------------------------------------------------------------
+  MESSAGE HANDLER
+  ------------------------------------------------------------
+  */
+
+  function handleMessage(
+    message,
+    connection
+  ) {
     if (!message) return;
 
     /*
-    --------------------------------------------------------
     PLAYER JOINED
-    --------------------------------------------------------
     */
 
     if (message.type === "JOIN") {
-      if (!isCoordinatorRef.current) return;
+      if (
+        !isCoordinatorRef.current
+      ) {
+        return;
+      }
 
-      const nextGame = addPlayer(
-        message.player
-      );
+      const nextGame =
+        addPlayer(
+          message.player
+        );
 
-      broadcastGame(nextGame);
+      /*
+      Send the new player the
+      latest state immediately.
+      */
 
       if (connection?.open) {
         connection.send(
@@ -312,17 +387,30 @@ export default function App() {
         );
       }
 
+      /*
+      Update everyone else.
+      */
+
+      broadcastGame(
+        nextGame
+      );
+
       return;
     }
 
     /*
-    --------------------------------------------------------
-    REQUEST CURRENT GAME
-    --------------------------------------------------------
+    REQUEST GAME STATE
     */
 
-    if (message.type === "REQUEST_GAME") {
-      if (!isCoordinatorRef.current) return;
+    if (
+      message.type ===
+      "REQUEST_GAME"
+    ) {
+      if (
+        !isCoordinatorRef.current
+      ) {
+        return;
+      }
 
       if (connection?.open) {
         connection.send(
@@ -337,53 +425,155 @@ export default function App() {
     }
 
     /*
-    --------------------------------------------------------
     GAME STATE
-    --------------------------------------------------------
     */
 
-    if (message.type === "GAME_STATE") {
-      const incoming = message.game;
+    if (
+      message.type ===
+      "GAME_STATE"
+    ) {
+      const incoming =
+        message.game;
 
       if (!incoming) return;
 
       const currentVersion =
-        Number(gameRef.current.version || 0);
+        Number(
+          gameRef.current.version ||
+            0
+        );
 
       const incomingVersion =
-        Number(incoming.version || 0);
+        Number(
+          incoming.version ||
+            0
+        );
 
-      if (incomingVersion >= currentVersion) {
-        updateGame(incoming);
+      if (
+        incomingVersion >=
+        currentVersion
+      ) {
+        updateGame(
+          incoming
+        );
 
-        setCount(incoming.count);
+        setCount(
+          incoming.count
+        );
 
-        setConnectionStatus("connected");
+        setConnectionStatus(
+          "connected"
+        );
 
-        setScreen("game");
+        /*
+        This is the important part:
+
+        Waiting room automatically changes
+        to game screen when phase becomes
+        "playing".
+        */
+
+        if (
+          incoming.phase ===
+          "playing"
+        ) {
+          setScreen("game");
+        } else {
+          setScreen("waiting");
+        }
       }
 
       return;
     }
 
     /*
-    --------------------------------------------------------
-    NUMBER CALL
-    --------------------------------------------------------
+    START GAME
     */
 
-    if (message.type === "CALL_NUMBER") {
-      if (!isCoordinatorRef.current) return;
+    if (
+      message.type ===
+      "START_GAME"
+    ) {
+      if (
+        !isCoordinatorRef.current
+      ) {
+        return;
+      }
 
-      const current = gameRef.current;
-
-      const number = Number(message.number);
+      const current =
+        gameRef.current;
 
       /*
-      Make sure:
-      - number is valid
-      - number wasn't already selected
-      - it really is that player's turn
+      At least one other player
+      must be present.
+      */
+
+      if (
+        current.players.length <
+        2
+      ) {
+        notify(
+          "Wait for at least one more player."
+        );
+
+        return;
+      }
+
+      const nextGame = {
+        ...current,
+
+        phase: "playing",
+
+        called: [],
+
+        turnIndex: 0,
+      };
+
+      broadcastGame(
+        nextGame
+      );
+
+      /*
+      Coordinator also switches
+      immediately.
+      */
+
+      setScreen("game");
+
+      return;
+    }
+
+    /*
+    CALL NUMBER
+    */
+
+    if (
+      message.type ===
+      "CALL_NUMBER"
+    ) {
+      if (
+        !isCoordinatorRef.current
+      ) {
+        return;
+      }
+
+      const current =
+        gameRef.current;
+
+      if (
+        current.phase !==
+        "playing"
+      ) {
+        return;
+      }
+
+      const number =
+        Number(
+          message.number
+        );
+
+      /*
+      Validate number.
       */
 
       if (
@@ -393,14 +583,31 @@ export default function App() {
         return;
       }
 
-      if (current.called.includes(number)) {
+      /*
+      Can't select an already
+      called number.
+      */
+
+      if (
+        current.called.includes(
+          number
+        )
+      ) {
         return;
       }
 
       const player =
-        current.players[current.turnIndex];
+        current.players[
+          current.turnIndex
+        ];
 
       if (!player) return;
+
+      /*
+      Make sure the request
+      came from the player whose
+      turn it actually is.
+      */
 
       if (
         player.id !==
@@ -410,8 +617,11 @@ export default function App() {
       }
 
       const nextTurn =
-        current.players.length > 0
-          ? (current.turnIndex + 1) %
+        current.players.length
+          ? (
+              current.turnIndex +
+              1
+            ) %
             current.players.length
           : 0;
 
@@ -423,70 +633,114 @@ export default function App() {
           number,
         ],
 
-        turnIndex: nextTurn,
+        turnIndex:
+          nextTurn,
       };
 
-      broadcastGame(nextGame);
+      broadcastGame(
+        nextGame
+      );
 
       return;
     }
   }
 
-  function setupConnection(connection) {
+  /*
+  ------------------------------------------------------------
+  CONNECTION SETUP
+  ------------------------------------------------------------
+  */
+
+  function setupConnection(
+    connection
+  ) {
     connectionsRef.current.set(
       connection.peer,
       connection
     );
 
-    connection.on("open", () => {
-      setConnectionStatus("connected");
-
-      connection.send(
-        JSON.stringify({
-          type: "JOIN",
-
-          player: {
-            id: playerId.current,
-            name: nameRef.current.trim(),
-          },
-        })
-      );
-
-      connection.send(
-        JSON.stringify({
-          type: "REQUEST_GAME",
-        })
-      );
-    });
-
-    connection.on("data", data => {
-      try {
-        const message =
-          typeof data === "string"
-            ? JSON.parse(data)
-            : data;
-
-        handleMessage(
-          message,
-          connection
+    connection.on(
+      "open",
+      () => {
+        setConnectionStatus(
+          "connected"
         );
-      } catch {
-        // Ignore malformed messages.
+
+        /*
+        Tell coordinator who
+        we are.
+        */
+
+        connection.send(
+          JSON.stringify({
+            type: "JOIN",
+
+            player: {
+              id:
+                playerId.current,
+
+              name:
+                nameRef.current.trim(),
+            },
+          })
+        );
+
+        /*
+        Request current room state.
+        */
+
+        connection.send(
+          JSON.stringify({
+            type: "REQUEST_GAME",
+          })
+        );
       }
-    });
+    );
 
-    connection.on("close", () => {
-      connectionsRef.current.delete(
-        connection.peer
-      );
-    });
+    connection.on(
+      "data",
+      data => {
+        try {
+          const message =
+            typeof data ===
+            "string"
+              ? JSON.parse(data)
+              : data;
 
-    connection.on("error", () => {
-      connectionsRef.current.delete(
-        connection.peer
-      );
-    });
+          handleMessage(
+            message,
+            connection
+          );
+        } catch {
+          // Ignore malformed data.
+        }
+      }
+    );
+
+    connection.on(
+      "close",
+      () => {
+        connectionsRef.current.delete(
+          connection.peer
+        );
+      }
+    );
+
+    connection.on(
+      "error",
+      () => {
+        connectionsRef.current.delete(
+          connection.peer
+        );
+      }
+    );
   }
+
+  /*
+  ------------------------------------------------------------
+  DESTROY PEER
+  ------------------------------------------------------------
+  */
 
   function destroyPeer() {
     connectionsRef.current.forEach(
@@ -507,24 +761,22 @@ export default function App() {
   }
 
   /*
-  ==========================================================
-  CREATE ROOM
-  ==========================================================
+  ============================================================
+  CREATE GAME
+  ============================================================
   */
 
-  async function createGame() {
+  function createGame() {
     if (!name.trim()) {
-      notify("Enter your name first.");
+      notify(
+        "Enter your name first."
+      );
+
       return;
     }
 
     /*
-    IMPORTANT:
-
-    Creating a game does NOT randomize the board here.
-
-    The board is already generated when the player chooses
-    Randomize or when manual selection is completed.
+    Manual card must be complete.
     */
 
     if (
@@ -532,32 +784,41 @@ export default function App() {
       board.length !== count
     ) {
       notify(
-        `Select exactly ${count} numbers first.`
+        `Select exactly ${count} numbers.`
       );
 
       return;
     }
 
     /*
-    If random mode has no board yet,
-    generate it ONCE.
+    Random card gets generated ONCE.
+
+    If already randomized,
+    do NOT shuffle again.
     */
 
     const finalBoard =
       mode === "random"
         ? board.length === count
           ? board
-          : shuffle(numbersFor(count))
+          : shuffle(
+              numbersFor(count)
+            )
         : board;
 
-    setBoard(finalBoard);
+    setBoard(
+      finalBoard
+    );
 
     const newRoom =
       createRoomCode();
 
-    setRoom(newRoom);
+    setRoom(
+      newRoom
+    );
 
-    roomRef.current = newRoom;
+    roomRef.current =
+      newRoom;
 
     nameRef.current =
       name.trim();
@@ -569,83 +830,113 @@ export default function App() {
     );
 
     /*
-    The room coordinator is only used for
-    PeerJS discovery/signaling.
+    Create the room coordinator.
 
-    It is NOT a game host.
+    This does NOT make this player
+    the game master.
 
-    Turns still rotate between every player.
+    It only keeps the shared room state.
     */
 
     const coordinatorId =
       `bingo-${newRoom}-coordinator`;
 
     const peer =
-      new Peer(coordinatorId);
+      new Peer(
+        coordinatorId
+      );
 
-    peerRef.current = peer;
+    peerRef.current =
+      peer;
 
-    peer.on("open", () => {
-      isCoordinatorRef.current =
-        true;
+    peer.on(
+      "open",
+      () => {
+        isCoordinatorRef.current =
+          true;
 
-      const me = {
-        id: playerId.current,
-        name: name.trim(),
-      };
+        const me = {
+          id:
+            playerId.current,
 
-      const newGame =
-        makeInitialGame(
-          count,
-          me
+          name:
+            name.trim(),
+        };
+
+        const newGame =
+          makeGame(
+            count,
+            me
+          );
+
+        updateGame(
+          newGame
         );
 
-      updateGame(newGame);
+        setConnectionStatus(
+          "connected"
+        );
 
-      setConnectionStatus(
-        "connected"
-      );
+        /*
+        IMPORTANT:
 
-      /*
-      Go directly to the game.
+        Go to WAITING ROOM,
+        NOT the game.
+        */
 
-      DO NOT shuffle again.
-      */
+        setScreen(
+          "waiting"
+        );
+      }
+    );
 
-      setScreen("game");
-    });
+    peer.on(
+      "connection",
+      connection => {
+        setupConnection(
+          connection
+        );
+      }
+    );
 
-    peer.on("connection", connection => {
-      setupConnection(connection);
-    });
+    peer.on(
+      "error",
+      error => {
+        console.error(
+          error
+        );
 
-    peer.on("error", error => {
-      console.error(error);
+        setConnectionStatus(
+          "offline"
+        );
 
-      setConnectionStatus(
-        "offline"
-      );
-
-      notify(
-        "Could not create the room."
-      );
-    });
+        notify(
+          "Could not create the room."
+        );
+      }
+    );
   }
 
   /*
-  ==========================================================
-  JOIN ROOM
-  ==========================================================
+  ============================================================
+  JOIN GAME
+  ============================================================
   */
 
-  async function joinGame() {
+  function joinGame() {
     if (!name.trim()) {
-      notify("Enter your name first.");
+      notify(
+        "Enter your name first."
+      );
+
       return;
     }
 
     if (!room.trim()) {
-      notify("Enter a room code.");
+      notify(
+        "Enter the room code."
+      );
+
       return;
     }
 
@@ -654,31 +945,38 @@ export default function App() {
       board.length !== count
     ) {
       notify(
-        `Select exactly ${count} numbers first.`
+        `Select exactly ${count} numbers.`
       );
 
       return;
     }
 
     /*
-    Each player gets their own card.
+    Give this player their own card.
 
-    Joining does NOT change the card again.
+    Every player gets a different random
+    arrangement.
     */
 
     const finalBoard =
       mode === "random"
         ? board.length === count
           ? board
-          : shuffle(numbersFor(count))
+          : shuffle(
+              numbersFor(count)
+            )
         : board;
 
-    setBoard(finalBoard);
+    setBoard(
+      finalBoard
+    );
 
     const roomCode =
       room.trim().toUpperCase();
 
-    setRoom(roomCode);
+    setRoom(
+      roomCode
+    );
 
     roomRef.current =
       roomCode;
@@ -696,44 +994,105 @@ export default function App() {
       `bingo-${roomCode}-${playerId.current}`;
 
     const peer =
-      new Peer(myPeerId);
+      new Peer(
+        myPeerId
+      );
 
-    peerRef.current = peer;
+    peerRef.current =
+      peer;
 
-    peer.on("open", () => {
-      const connection =
-        peer.connect(
-          `bingo-${roomCode}-coordinator`,
-          {
-            reliable: true,
-          }
+    peer.on(
+      "open",
+      () => {
+        const connection =
+          peer.connect(
+            `bingo-${roomCode}-coordinator`,
+            {
+              reliable: true,
+            }
+          );
+
+        setupConnection(
+          connection
         );
 
-      setupConnection(
-        connection
-      );
-    });
+        /*
+        We initially show the waiting
+        screen while waiting for the
+        room state.
+        */
 
-    peer.on("error", error => {
-      console.error(error);
+        setScreen(
+          "waiting"
+        );
+      }
+    );
 
-      setConnectionStatus(
-        "offline"
-      );
+    peer.on(
+      "error",
+      error => {
+        console.error(
+          error
+        );
 
+        setConnectionStatus(
+          "offline"
+        );
+
+        notify(
+          "Could not join the room. Check the room code."
+        );
+      }
+    );
+  }
+
+  /*
+  ============================================================
+  START BINGO
+  ============================================================
+  */
+
+  function startBingo() {
+    /*
+    Only the room creator can press
+    this button.
+
+    They are NOT the host during
+    the actual game.
+    */
+
+    if (
+      !isCoordinatorRef.current
+    ) {
+      return;
+    }
+
+    if (
+      game.players.length <
+      2
+    ) {
       notify(
-        "Could not join the room. Check the room code."
+        "You need at least 2 players."
       );
+
+      return;
+    }
+
+    handleMessage({
+      type:
+        "START_GAME",
     });
   }
 
   /*
-  ==========================================================
-  SELECT NEXT NUMBER
-  ==========================================================
+  ============================================================
+  SELECT NUMBER
+  ============================================================
   */
 
-  function selectNumber(number) {
+  function selectNumber(
+    number
+  ) {
     if (!myTurn) {
       notify(
         `Wait for ${
@@ -746,13 +1105,16 @@ export default function App() {
     }
 
     if (
-      game.called.includes(number)
+      game.called.includes(
+        number
+      )
     ) {
       return;
     }
 
     const message = {
-      type: "CALL_NUMBER",
+      type:
+        "CALL_NUMBER",
 
       number,
 
@@ -761,49 +1123,68 @@ export default function App() {
     };
 
     /*
-    Coordinator processes its own
-    selection directly.
+    Room coordinator processes
+    its own request directly.
     */
 
     if (
       isCoordinatorRef.current
     ) {
-      handleMessage(message);
+      handleMessage(
+        message
+      );
     } else {
       /*
-      Normal players send the request
-      to the coordinator.
+      Non-coordinator player sends
+      the request to coordinator.
       */
 
-      sendToEveryone(message);
+      connectionsRef.current.forEach(
+        connection => {
+          if (
+            connection.open
+          ) {
+            try {
+              connection.send(
+                JSON.stringify(
+                  message
+                )
+              );
+            } catch {}
+          }
+        }
+      );
     }
   }
 
   /*
-  ==========================================================
+  ============================================================
   RANDOMIZE CARD
-  ==========================================================
+  ============================================================
   */
 
   function randomizeCard() {
-    const newBoard =
+    setBoard(
       shuffle(
         numbersFor(count)
-      );
-
-    setBoard(newBoard);
+      )
+    );
   }
 
   /*
-  ==========================================================
+  ============================================================
   MANUAL CARD
-  ==========================================================
+  ============================================================
   */
 
-  function toggleManualNumber(number) {
+  function toggleManualNumber(
+    number
+  ) {
     setBoard(previous => {
       if (
-        previous.includes(number)
+        previous.includes(
+          number
+        )
       ) {
         return previous.filter(
           n => n !== number
@@ -811,7 +1192,8 @@ export default function App() {
       }
 
       if (
-        previous.length >= count
+        previous.length >=
+        count
       ) {
         return previous;
       }
@@ -824,9 +1206,9 @@ export default function App() {
   }
 
   /*
-  ==========================================================
+  ============================================================
   LEAVE
-  ==========================================================
+  ============================================================
   */
 
   function leaveGame() {
@@ -835,43 +1217,42 @@ export default function App() {
     isCoordinatorRef.current =
       false;
 
-    connectingRef.current =
-      false;
-
     setConnectionStatus(
       "offline"
     );
 
-    setScreen("home");
-
     setRoom("");
+
+    setBoard([]);
 
     setWinner(false);
 
     setGame(
-      makeInitialGame(
+      makeGame(
         25,
         {
-          id: playerId.current,
+          id:
+            playerId.current,
           name: "",
         }
       )
     );
 
-    setBoard([]);
-
-    setCalled([]);
+    setScreen(
+      "home"
+    );
   }
 
   /*
-  ==========================================================
+  ============================================================
   HOME
-  ==========================================================
+  ============================================================
   */
 
   if (screen === "home") {
     return (
       <div className="app">
+
         <main className="home">
 
           <div className="brand">
@@ -900,9 +1281,9 @@ export default function App() {
 
             <input
               value={name}
-              onChange={event =>
+              onChange={e =>
                 setName(
-                  event.target.value
+                  e.target.value
                 )
               }
               placeholder="Enter your name"
@@ -915,32 +1296,37 @@ export default function App() {
 
             <div className="choiceGrid">
 
-              {[25, 100].map(number => (
+              {[25, 100].map(
+                number => (
 
-                <button
-                  key={number}
-                  className={
-                    count === number
-                      ? "choice active"
-                      : "choice"
-                  }
-                  onClick={() => {
-                    setCount(number);
-                    setBoard([]);
-                  }}
-                >
+                  <button
+                    key={number}
+                    className={
+                      count === number
+                        ? "choice active"
+                        : "choice"
+                    }
+                    onClick={() => {
+                      setCount(
+                        number
+                      );
 
-                  <b>
-                    {number}
-                  </b>
+                      setBoard([]);
+                    }}
+                  >
 
-                  <span>
-                    numbers
-                  </span>
+                    <b>
+                      {number}
+                    </b>
 
-                </button>
+                    <span>
+                      numbers
+                    </span>
 
-              ))}
+                  </button>
+
+                )
+              )}
 
             </div>
 
@@ -957,19 +1343,15 @@ export default function App() {
                     : ""
                 }
                 onClick={() => {
-                  setMode("random");
-
-                  /*
-                  Generate the card immediately.
-
-                  This is the ONLY place the random
-                  card gets randomized when switching
-                  to random mode.
-                  */
+                  setMode(
+                    "random"
+                  );
 
                   setBoard(
                     shuffle(
-                      numbersFor(count)
+                      numbersFor(
+                        count
+                      )
                     )
                   );
                 }}
@@ -984,7 +1366,10 @@ export default function App() {
                     : ""
                 }
                 onClick={() => {
-                  setMode("manual");
+                  setMode(
+                    "manual"
+                  );
+
                   setBoard([]);
                 }}
               >
@@ -994,7 +1379,6 @@ export default function App() {
             </div>
 
             {mode === "random" && (
-
               <>
 
                 <div className="preview">
@@ -1007,15 +1391,15 @@ export default function App() {
                         board.length
                       )
                     )
-                    .map(number => (
-
-                      <span
-                        key={number}
-                      >
-                        {number}
-                      </span>
-
-                    ))}
+                    .map(
+                      number => (
+                        <span
+                          key={number}
+                        >
+                          {number}
+                        </span>
+                      )
+                    )}
 
                 </div>
 
@@ -1029,11 +1413,9 @@ export default function App() {
                 </button>
 
               </>
-
             )}
 
             {mode === "manual" && (
-
               <>
 
                 <p className="hint">
@@ -1051,7 +1433,9 @@ export default function App() {
                   Selected:{" "}
 
                   <b>
-                    {board.length}/{count}
+                    {board.length}
+                    /
+                    {count}
                   </b>
 
                 </p>
@@ -1060,37 +1444,40 @@ export default function App() {
 
                   {numbersFor(
                     count
-                  ).map(number => (
+                  ).map(
+                    number => (
 
-                    <button
-                      key={number}
-                      className={
-                        board.includes(
-                          number
-                        )
-                          ? "picked"
-                          : ""
-                      }
-                      onClick={() =>
-                        toggleManualNumber(
-                          number
-                        )
-                      }
-                    >
-                      {number}
-                    </button>
+                      <button
+                        key={number}
+                        className={
+                          board.includes(
+                            number
+                          )
+                            ? "picked"
+                            : ""
+                        }
+                        onClick={() =>
+                          toggleManualNumber(
+                            number
+                          )
+                        }
+                      >
+                        {number}
+                      </button>
 
-                  ))}
+                    )
+                  )}
 
                 </div>
 
               </>
-
             )}
 
             <button
               className="primary"
-              onClick={createGame}
+              onClick={
+                createGame
+              }
             >
               Create Game
             </button>
@@ -1101,9 +1488,9 @@ export default function App() {
 
             <input
               value={room}
-              onChange={event =>
+              onChange={e =>
                 setRoom(
-                  event.target.value.toUpperCase()
+                  e.target.value.toUpperCase()
                 )
               }
               placeholder="Room code"
@@ -1112,7 +1499,9 @@ export default function App() {
 
             <button
               className="secondary"
-              onClick={joinGame}
+              onClick={
+                joinGame
+              }
             >
               Join Game
             </button>
@@ -1136,9 +1525,290 @@ export default function App() {
   }
 
   /*
-  ==========================================================
+  ============================================================
+  WAITING ROOM
+  ============================================================
+  */
+
+  if (
+    screen === "waiting"
+  ) {
+    return (
+      <div className="app">
+
+        <header className="topbar">
+
+          <div>
+
+            <h2>
+              LAN Bingo
+            </h2>
+
+            <small>
+              Waiting Room
+            </small>
+
+          </div>
+
+          <div className="topActions">
+
+            <span
+              className={`status ${connectionStatus}`}
+            >
+              ●{" "}
+
+              {connectionStatus ===
+              "connected"
+                ? "Connected"
+                : "Connecting"}
+            </span>
+
+            <button
+              className="small"
+              onClick={
+                leaveGame
+              }
+            >
+              Leave
+            </button>
+
+          </div>
+
+        </header>
+
+        <main className="home">
+
+          <section
+            className="card"
+            style={{
+              textAlign: "center",
+              marginTop: 20,
+            }}
+          >
+
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 800,
+                color: "#777e87",
+                letterSpacing: 1,
+                marginBottom: 8,
+              }}
+            >
+              ROOM CODE
+            </div>
+
+            <div
+              style={{
+                fontSize: 42,
+                fontWeight: 950,
+                letterSpacing: 7,
+                marginBottom: 8,
+              }}
+            >
+              {room}
+            </div>
+
+            <p
+              style={{
+                color: "#777e87",
+                fontSize: 12,
+                marginBottom: 24,
+              }}
+            >
+              Share this code with everyone
+              who wants to play.
+            </p>
+
+            <div
+              style={{
+                height: 1,
+                background: "#e5e7ea",
+                margin: "20px 0",
+              }}
+            />
+
+            <div
+              style={{
+                textAlign: "left",
+              }}
+            >
+
+              <h2
+                style={{
+                  margin: "0 0 4px",
+                  fontSize: 20,
+                }}
+              >
+                Players
+              </h2>
+
+              <p
+                style={{
+                  margin: "0 0 14px",
+                  color: "#858b94",
+                  fontSize: 11,
+                }}
+              >
+                {game.players.length}{" "}
+                player
+                {game.players.length ===
+                1
+                  ? ""
+                  : "s"} connected
+              </p>
+
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gap: 8,
+                marginBottom: 22,
+              }}
+            >
+
+              {game.players.map(
+                (player, index) => (
+
+                  <div
+                    key={player.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "11px 12px",
+                      borderRadius: 9,
+                      background:
+                        player.id ===
+                        playerId.current
+                          ? "#eef0f2"
+                          : "#f7f7f8",
+                      border:
+                        "1px solid #e1e4e8",
+                      textAlign: "left",
+                    }}
+                  >
+
+                    <div
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: "50%",
+                        background:
+                          "#111827",
+                        color: "white",
+                        display: "grid",
+                        placeItems: "center",
+                        fontWeight: 900,
+                        fontSize: 11,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {index + 1}
+                    </div>
+
+                    <div>
+
+                      <b
+                        style={{
+                          fontSize: 13,
+                        }}
+                      >
+                        {player.name}
+                      </b>
+
+                      {player.id ===
+                        playerId.current && (
+                        <div
+                          style={{
+                            fontSize: 9,
+                            color:
+                              "#777e87",
+                            marginTop: 2,
+                          }}
+                        >
+                          You
+                        </div>
+                      )}
+
+                    </div>
+
+                  </div>
+
+                )
+              )}
+
+            </div>
+
+            {isCoordinatorRef.current ? (
+              <>
+
+                <button
+                  className="primary"
+                  onClick={
+                    startBingo
+                  }
+                  disabled={
+                    game.players.length <
+                    2
+                  }
+                >
+                  {game.players.length <
+                  2
+                    ? "Waiting for players..."
+                    : "Start Bingo"}
+                </button>
+
+                <p
+                  style={{
+                    color: "#858b94",
+                    fontSize: 10,
+                    marginTop: 10,
+                  }}
+                >
+                  You can start once
+                  everyone has joined.
+                </p>
+
+              </>
+            ) : (
+
+              <div
+                style={{
+                  padding: 14,
+                  borderRadius: 9,
+                  background:
+                    "#f0f1f3",
+                  color: "#666c74",
+                  fontSize: 12,
+                  fontWeight: 700,
+                }}
+              >
+                Waiting for the
+                game to start...
+              </div>
+
+            )}
+
+          </section>
+
+        </main>
+
+        {notice && (
+          <div className="toast">
+            {notice}
+          </div>
+        )}
+
+      </div>
+    );
+  }
+
+  /*
+  ============================================================
   GAME SCREEN
-  ==========================================================
+  ============================================================
   */
 
   return (
@@ -1166,16 +1836,14 @@ export default function App() {
           <span
             className={`status ${connectionStatus}`}
           >
-            ●{" "}
-            {connectionStatus ===
-            "connected"
-              ? "Connected"
-              : "Connecting"}
+            ● Connected
           </span>
 
           <button
             className="small"
-            onClick={leaveGame}
+            onClick={
+              leaveGame
+            }
           >
             Leave
           </button>
@@ -1186,7 +1854,7 @@ export default function App() {
 
       <main className="gameLayout">
 
-        {/* TURN */}
+        {/* CURRENT TURN */}
 
         <section className="turnCard">
 
@@ -1222,7 +1890,8 @@ export default function App() {
                 <div
                   key={player.id}
                   className={
-                    index === game.turnIndex
+                    index ===
+                    game.turnIndex
                       ? "player active"
                       : "player"
                   }
@@ -1252,7 +1921,7 @@ export default function App() {
 
         </section>
 
-        {/* SHARED NUMBER BOARD */}
+        {/* NUMBER SELECTION */}
 
         <section className="calledPanel">
 
@@ -1295,49 +1964,50 @@ export default function App() {
             }}
           >
 
-            {numbersFor(count).map(
-              number => {
+            {numbersFor(
+              count
+            ).map(number => {
 
-                const used =
-                  game.called.includes(
-                    number
-                  );
-
-                return (
-
-                  <button
-                    key={number}
-                    disabled={
-                      used ||
-                      !myTurn
-                    }
-                    className={
-                      `number ${
-                        used
-                          ? "used"
-                          : ""
-                      }`
-                    }
-                    onClick={() =>
-                      selectNumber(
-                        number
-                      )
-                    }
-                  >
-
-                    {number}
-
-                  </button>
-
+              const used =
+                game.called.includes(
+                  number
                 );
-              }
-            )}
+
+              return (
+
+                <button
+                  key={number}
+                  disabled={
+                    used ||
+                    !myTurn
+                  }
+                  className={
+                    `number ${
+                      used
+                        ? "used"
+                        : ""
+                    }`
+                  }
+                  onClick={() =>
+                    selectNumber(
+                      number
+                    )
+                  }
+                >
+
+                  {number}
+
+                </button>
+
+              );
+
+            })}
 
           </div>
 
         </section>
 
-        {/* BINGO CARD */}
+        {/* BINGO HEADER */}
 
         <section className="card bingoCard">
 
@@ -1358,9 +2028,7 @@ export default function App() {
                       : ""
                   }
                 >
-
                   {letter}
-
                 </span>
 
               )
@@ -1406,6 +2074,8 @@ export default function App() {
             )}
 
           </div>
+
+          {/* PLAYER'S OWN CARD */}
 
           <div
             className="playerBoard"
@@ -1478,7 +2148,7 @@ export default function App() {
 
         </section>
 
-        {/* CALLED HISTORY */}
+        {/* HISTORY */}
 
         <section className="card history">
 
@@ -1500,7 +2170,7 @@ export default function App() {
 
           <div className="calledList">
 
-            {game.called.length > 0
+            {game.called.length
               ? game.called.map(
                   (number, index) => (
 
@@ -1575,16 +2245,4 @@ export default function App() {
 
     </div>
   );
-}
-
-/*
-============================================================
-COMPATIBILITY HELPERS
-============================================================
-*/
-
-function setCalled(values) {
-  // Intentionally unused.
-  // Kept out of the game flow so called numbers are always
-  // controlled by the multiplayer game state.
 }
