@@ -42,7 +42,7 @@ export default function App() {
 
   const serverUrl =
     import.meta.env.VITE_WS_URL ||
-    `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.hostname}:3001`;
+    `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.hostname}:8080`;
 
   gameRef.current = game;
   boardRef.current = board;
