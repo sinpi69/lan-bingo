@@ -1,18 +1,18 @@
-import { LETTERS } from "../utils/bingo";
-
 export default function BingoCard({
   board,
   calledSet,
   completedLines,
   completedCells,
   eliminated,
+  myTurn,
+  onSelectNumber,
 }) {
   const boardSize = Math.sqrt(board.length);
 
   return (
     <div className="bingoBody">
       <div className="bingoHeader">
-        {LETTERS.map((letter, index) => (
+        {["B", "I", "N", "G", "O"].map((letter, index) => (
           <span
             key={letter}
             className={
@@ -32,23 +32,23 @@ export default function BingoCard({
           <p>
             {eliminated
               ? "Finished — no more turns"
-              : `${completedLines.length} completed line${
-                  completedLines.length === 1 ? "" : "s"
-                }`}
+              : myTurn
+                ? "Your turn — select a number from your card"
+                : "Wait for your turn"}
           </p>
         </div>
 
-        {completedLines.length > 0 && (
-          <strong className="bingoWin">
-            {completedLines.length >= 5
-              ? "BINGO!"
-              : `${completedLines.length}/5`}
-          </strong>
-        )}
+        <strong className="bingoWin">
+          {completedLines.length >= 5
+            ? "BINGO!"
+            : `${completedLines.length}/5`}
+        </strong>
       </div>
 
       <div
-        className={`playerBoard ${eliminated ? "eliminatedBoard" : ""}`}
+        className={`playerBoard ${
+          eliminated ? "eliminatedBoard" : ""
+        } ${myTurn ? "selectableBoard" : ""}`}
         style={{
           gridTemplateColumns: `repeat(${boardSize}, minmax(0, 1fr))`,
         }}
@@ -56,21 +56,34 @@ export default function BingoCard({
         {board.map((number, index) => {
           const called = calledSet.has(number);
           const line = completedCells.has(index);
+          const selectable = myTurn && !eliminated && !called;
 
           return (
-            <div
+            <button
+              type="button"
               key={`${number}-${index}`}
+              disabled={!selectable}
+              onClick={() => onSelectNumber(number)}
               className={[
                 "cell",
                 called ? "hit" : "",
                 line ? "line" : "",
+                selectable ? "selectable" : "",
               ].join(" ")}
             >
               {number}
               {called && <span>✓</span>}
-            </div>
+            </button>
           );
         })}
+      </div>
+
+      <div className="cardInstruction">
+        {eliminated
+          ? "Your placement is locked. Watch the remaining players."
+          : myTurn
+            ? "Click one of the available numbers above to call it."
+            : "The active player will choose a number from their own card."}
       </div>
 
       {completedLines.length > 0 && (

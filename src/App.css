@@ -1193,3 +1193,52 @@ input:focus {
     padding: 7px;
   }
 }
+
+
+/* ===== Select numbers directly from the Bingo card ===== */
+
+.playerBoard .cell {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  color: #17191d;
+  -webkit-appearance: none;
+}
+
+.playerBoard .cell.selectable {
+  cursor: pointer;
+}
+
+.playerBoard .cell.selectable:hover {
+  background: #111318;
+  color: #fff;
+  border-color: #111318;
+  transform: translateY(-1px);
+}
+
+.playerBoard .cell.selectable:active {
+  transform: scale(0.97);
+}
+
+.playerBoard .cell.hit,
+.playerBoard .cell.line {
+  cursor: default;
+}
+
+.cardInstruction {
+  margin-top: 13px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f2f3f4;
+  color: #6f747b;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+@media (max-width: 700px) {
+  .playerBoard .cell.selectable:hover {
+    transform: none;
+  }
+}

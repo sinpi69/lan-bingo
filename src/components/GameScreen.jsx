@@ -1,5 +1,4 @@
 import BingoCard from "./BingoCard";
-import NumberSelector from "./NumberSelector";
 import WinnerOverlay from "./WinnerOverlay";
 
 export default function GameScreen({
@@ -130,18 +129,11 @@ export default function GameScreen({
             completedLines={completedLines}
             completedCells={completedCells}
             eliminated={eliminated}
-          />
-
-          <div className="gameCardDivider" />
-
-          <NumberSelector
-            count={game.count}
-            called={game.called}
             myTurn={myTurn}
-            currentPlayer={game.players[game.turnIndex]}
-            onSelect={onSelectNumber}
-            eliminated={eliminated}
+            onSelectNumber={onSelectNumber}
           />
+
+
         </section>
 
         <section className="card history">
