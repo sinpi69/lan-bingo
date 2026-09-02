@@ -2,7 +2,7 @@ import { WebSocketServer } from "ws";
 import { createServer } from "http";
 import crypto from "crypto";
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3001;
 const RECONNECT_GRACE_MS = 5 * 60 * 1000;
 const rooms = new Map();
 
